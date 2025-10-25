@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block title %}SmartBank - Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="fas fa-user-shield"></i> Admin Dashboard</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Total Users</h5>
+                        <p class="card-text" id="totalUsers">Loading...</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Pending KYC</h5>
+                        <p class="card-text" id="pendingKYC">Loading...</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-id-card"></i> Pending KYC Documents</h5>
+            </div>
+            <div class="card-body">
+                <div id="pendingKYCList">
+                    <p class="text-muted">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tasks"></i> Admin Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary" onclick="loadUsers()">
+                        <i class="fas fa-users"></i> View All Users
+                    </button>
+                    <button class="btn btn-outline-warning" onclick="loadPendingKYC()">
+                        <i class="fas fa-clock"></i> Review KYC Documents
+                    </button>
+                    <button class="btn btn-outline-danger" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">All Users</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="usersList"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Check if admin is logged in
+const token = localStorage.getItem('access_token');
+if (!token) {
+    window.location.href = '/login';
+}
+
+// Load dashboard data
+async function loadDashboardData() {
+    try {
+        console.log('Loading admin dashboard data...');
+        
+        const [usersResponse, kycResponse] = await Promise.all([
+            fetch('/api/admin/users', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            }),
+            fetch('/api/admin/kyc/pending', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+        ]);
+        
+        console.log('Users response:', usersResponse.status);
+        console.log('KYC response:', kycResponse.status);
+        
+        if (usersResponse.ok) {
+            const users = await usersResponse.json();
+            console.log('Users loaded:', users.length);
+            document.getElementById('totalUsers').textContent = users.length;
+        } else {
+            console.error('Failed to load users:', usersResponse.status);
+        }
+        
+        if (kycResponse.ok) {
+            const pendingKYC = await kycResponse.json();
+            console.log('Pending KYC loaded:', pendingKYC.length);
+            document.getElementById('pendingKYC').textContent = pendingKYC.length;
+            displayPendingKYC(pendingKYC);
+        } else {
+            console.error('Failed to load KYC:', kycResponse.status);
+            const error = await kycResponse.json();
+            console.error('KYC Error:', error);
+        }
+    } catch (error) {
+        console.error('Error loading dashboard data:', error);
+    }
+}
+
+function displayPendingKYC(documents) {
+    const container = document.getElementById('pendingKYCList');
+    
+    if (documents.length === 0) {
+        container.innerHTML = '<p class="text-muted">No pending KYC documents</p>';
+        return;
+    }
+    
+    let html = '';
+    documents.forEach(doc => {
+        html += `
+            <div class="card mb-2">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${doc.document_type.toUpperCase()}</h6>
+                            <small class="text-muted">User ID: ${doc.user_id} | ${doc.document_number}</small>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm btn-success me-1" onclick="approveKYC(${doc.id})">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="rejectKYC(${doc.id})">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+async function approveKYC(documentId) {
+    console.log('Approving KYC document:', documentId);
+    try {
+        const response = await fetch(`/api/admin/kyc/${documentId}/approve`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        console.log('Approve response:', response.status);
+        
+        if (response.ok) {
+            alert('KYC document approved successfully');
+            loadDashboardData();
+        } else {
+            const error = await response.json();
+            console.error('Approve error:', error);
+            alert('Failed to approve KYC document: ' + error.detail);
+        }
+    } catch (error) {
+        console.error('Error approving KYC:', error);
+        alert('Error approving KYC document');
+    }
+}
+
+async function rejectKYC(documentId) {
+    if (confirm('Are you sure you want to reject this KYC document?')) {
+        console.log('Rejecting KYC document:', documentId);
+        try {
+            const response = await fetch(`/api/admin/kyc/${documentId}/reject`, {
+                method: 'PUT',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            
+            console.log('Reject response:', response.status);
+            
+            if (response.ok) {
+                alert('KYC document rejected');
+                loadDashboardData();
+            } else {
+                const error = await response.json();
+                console.error('Reject error:', error);
+                alert('Failed to reject KYC document: ' + error.detail);
+            }
+        } catch (error) {
+            console.error('Error rejecting KYC:', error);
+            alert('Error rejecting KYC document');
+        }
+    }
+}
+
+async function loadUsers() {
+    try {
+        const response = await fetch('/api/admin/users', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            const users = await response.json();
+            displayUsers(users);
+            const modal = new bootstrap.Modal(document.getElementById('userModal'));
+            modal.show();
+        }
+    } catch (error) {
+        alert('Error loading users');
+    }
+}
+
+function displayUsers(users) {
+    const container = document.getElementById('usersList');
+    let html = '<div class="table-responsive"><table class="table table-striped"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Role</th><th>Status</th></tr></thead><tbody>';
+    
+    users.forEach(user => {
+        html += `
+            <tr>
+                <td>${user.id}</td>
+                <td>${user.first_name} ${user.last_name}</td>
+                <td>${user.email}</td>
+                <td><span class="badge bg-${user.role === 'ADMIN' ? 'danger' : 'primary'}">${user.role}</span></td>
+                <td><span class="badge bg-${user.is_active ? 'success' : 'secondary'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+function loadPendingKYC() {
+    loadDashboardData();
+}
+
+function logout() {
+    localStorage.removeItem('access_token');
+    window.location.href = '/login';
+}
+
+// Load data on page load
+loadDashboardData();
+</script>
+{% endblock %}

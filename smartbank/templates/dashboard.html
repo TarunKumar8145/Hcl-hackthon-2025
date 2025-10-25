@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}SmartBank - Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h2><i class="fas fa-tachometer-alt"></i> Dashboard</h2>
+        <hr>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">KYC Status</h5>
+                        <p class="card-text" id="kycStatus">Loading...</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-id-card fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Accounts</h5>
+                        <p class="card-text" id="accountCount">0 Active</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-university fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Balance</h5>
+                        <p class="card-text" id="totalBalance">₹0.00</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-wallet fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">Transactions</h5>
+                        <p class="card-text">0 Today</p>
+                    </div>
+                    <div>
+                        <i class="fas fa-exchange-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-tasks"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/kyc" class="btn btn-outline-primary">
+                        <i class="fas fa-id-card"></i> Complete KYC Verification
+                    </a>
+                    <a href="/accounts/create" class="btn btn-outline-success">
+                        <i class="fas fa-plus"></i> Open New Account
+                    </a>
+                    <a href="/transfer" class="btn btn-outline-info">
+                        <i class="fas fa-paper-plane"></i> Transfer Money
+                    </a>
+                    <button class="btn btn-outline-warning" disabled>
+                        <i class="fas fa-file-alt"></i> View Statements
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-university"></i> My Accounts</h5>
+            </div>
+            <div class="card-body">
+                <div id="accountsList">
+                    <p class="text-muted">Loading accounts...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Check if user is logged in
+const token = localStorage.getItem('access_token');
+console.log('Token from localStorage:', token);
+
+if (!token) {
+    console.log('No token found, redirecting to login');
+    window.location.href = '/login';
+} else {
+    console.log('Token found, proceeding to load data');
+}
+
+// Load KYC status
+async function loadKYCStatus() {
+    try {
+        const response = await fetch('/api/kyc/status', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const kycDocs = await response.json();
+            const statusElement = document.getElementById('kycStatus');
+            
+            if (kycDocs.length === 0) {
+                statusElement.textContent = 'Not Started';
+            } else {
+                const hasApproved = kycDocs.some(doc => doc.status === 'approved');
+                const hasPending = kycDocs.some(doc => doc.status === 'pending');
+                
+                if (hasApproved) {
+                    statusElement.textContent = 'Verified';
+                } else if (hasPending) {
+                    statusElement.textContent = 'Under Review';
+                } else {
+                    statusElement.textContent = 'Incomplete';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading KYC status:', error);
+    }
+}
+
+// Load KYC status
+async function loadKYCStatus() {
+    try {
+        const response = await fetch('/api/kyc/status', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const kycDocs = await response.json();
+            const statusElement = document.getElementById('kycStatus');
+            
+            if (kycDocs.length === 0) {
+                statusElement.textContent = 'Not Started';
+            } else {
+                const hasApproved = kycDocs.some(doc => doc.status === 'approved');
+                const hasPending = kycDocs.some(doc => doc.status === 'pending');
+                
+                if (hasApproved) {
+                    statusElement.textContent = 'Verified';
+                } else if (hasPending) {
+                    statusElement.textContent = 'Under Review';
+                } else {
+                    statusElement.textContent = 'Incomplete';
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error loading KYC status:', error);
+    }
+}
+
+// Load user accounts
+async function loadAccounts() {
+    try {
+        const response = await fetch('/api/accounts', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        console.log('Accounts response status:', response.status);
+        
+        if (response.ok) {
+            const accounts = await response.json();
+            console.log('Accounts loaded:', accounts);
+            const container = document.getElementById('accountsList');
+            
+            // Update account count
+            document.getElementById('accountCount').textContent = `${accounts.length} Active`;
+            
+            // Calculate and update total balance
+            const totalBalance = accounts.reduce((sum, account) => sum + parseFloat(account.balance), 0);
+            document.getElementById('totalBalance').textContent = `₹${totalBalance.toFixed(2)}`;
+            
+            if (accounts.length === 0) {
+                container.innerHTML = '<p class="text-muted">No accounts found. <a href="/accounts/create">Create your first account</a></p>';
+            } else {
+                let html = '';
+                accounts.forEach(account => {
+                    html += `
+                        <div class="card mb-2">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <h6 class="mb-1">${account.account_type.toUpperCase()} Account</h6>
+                                        <small class="text-muted">${account.account_number}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <h6 class="mb-0 text-success">₹${parseFloat(account.balance).toFixed(2)}</h6>
+                                        <small class="text-muted">Balance</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
+            }
+        } else {
+            console.error('Failed to load accounts:', response.status);
+            document.getElementById('accountsList').innerHTML = '<p class="text-danger">Error loading accounts. Please refresh the page.</p>';
+        }
+    } catch (error) {
+        console.error('Error loading accounts:', error);
+        document.getElementById('accountsList').innerHTML = '<p class="text-danger">Error loading accounts. Please check your connection.</p>';
+    }
+}
+
+// Load dashboard data
+loadKYCStatus();
+loadAccounts();
+</script>
+{% endblock %}

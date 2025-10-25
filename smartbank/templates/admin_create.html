@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}SmartBank - Create Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0"><i class="fas fa-user-shield"></i> Create Admin Account</h4>
+            </div>
+            <div class="card-body">
+                <form id="adminForm">
+                    <div class="mb-3">
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first_name" name="first_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Admin Email</label>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Admin Password</label>
+                        <input type="password" class="form-control" id="password" name="password" minlength="8" required>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-user-shield"></i> Create Admin
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="text-center mt-3">
+                    <p><a href="/login">Back to Login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('adminForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    try {
+        const response = await fetch('/api/admin/create', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            alert('Admin account created successfully! Please login.');
+            window.location.href = '/login';
+        } else {
+            const error = await response.json();
+            alert('Failed to create admin: ' + error.detail);
+        }
+    } catch (error) {
+        alert('Error creating admin: ' + error.message);
+    }
+});
+</script>
+{% endblock %}
