@@ -485,8 +485,12 @@ async def admin_page(request: Request):
 @app.get("/transfer", response_class=HTMLResponse)
 async def transfer_page(request: Request):
     return templates.TemplateResponse("transfer.html", {"request": request})
+
+@app.get("/accounts/create", response_class=HTMLResponse)
 async def create_account_page(request: Request):
     return templates.TemplateResponse("create_account.html", {"request": request})
+
+@app.get("/admin/create", response_class=HTMLResponse)
 async def admin_create_page(request: Request):
     return templates.TemplateResponse("admin_create.html", {"request": request})
 
